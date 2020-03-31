@@ -1,0 +1,36 @@
+---
+# tasks file for docker
+# apt_key needs this
+- name: Install apt-transport-https
+  become: yes
+  apt:
+    name: apt-transport-https
+    state: present
+
+- name: Add repository gpg key by key url
+  become: yes
+  apt_key:
+    url: https://download.docker.com/linux/debian/gpg
+    state: present
+    id: 0EBFCD88
+
+- name: Add docker repository
+  become: yes
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/debian stretch stable
+    state: present
+    update_cache: yes
+
+- name: Install docker
+  become: yes
+  apt:
+    name: docker-ce
+    state: present
+    update_cache: yes
+    cache_valid_time: 0
+
+- name: Install docker pip package
+  become: yes
+  pip:
+    name: docker
+  when: install_docker_pip

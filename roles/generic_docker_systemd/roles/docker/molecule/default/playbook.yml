@@ -1,0 +1,15 @@
+---
+
+- name: '[Pretask] Install pip'
+  hosts: all
+  tasks:
+    - name: Install pip
+      become: true
+      package:
+        name: python-pip
+        state: present
+
+- name: Converge
+  hosts: all
+  roles:
+    - role: docker

@@ -1,0 +1,65 @@
+---
+
+## You must fill the empty variables
+
+# Common
+
+base_domain:
+tor_hostname:
+data_path: /data
+
+user_uid_1000:
+group_gid_1000: "{{ user_uid_1000 }}"
+
+user_uid_33: www-data
+group_gid_33: "{{ user_uid_33 }}"
+
+ca_certs_path: /etc/ssl/certs/ca-certificates.crt
+
+docker_db_mariadb_image: mariadb:10.3
+docker_db_postgres_image: postgres:11
+dockerfiles_path: /root/dockerfiles
+
+## Following values will be used for the root account of every docker database
+db_pass:
+db_config_port: 3306
+
+sendxmpp_jid: "{{ user_uid_1000 }}@{{ prosody_domain }}"
+sendxmpp_pass:
+
+## anarres-sec
+
+ssh_port: 2222
+admin_xmpp:
+
+## Web and Let's Encrypt
+
+nginx_processes: auto
+web_ports_http: 80
+web_ports_https: 443
+
+web_path: /var/www
+
+web_path_letsencrypt: "{{ web_path }}/letsencrypt"
+web_path_default: "{{ web_path }}/default"
+
+## Archive
+
+archive_network_name: archive
+archive_directory:
+  data: "{{ data_path }}/archive"
+
+## Archive DB
+
+archive_db_phpmyadmin_image: phpmyadmin/phpmyadmin:5
+archive_db_image: "{{ docker_db_mariadb_image }}"
+archive_db_web_port: 3445
+archive_db_pass: default
+archive_db_user:
+archive_db_user_pass:
+archive_db_name:
+
+archive_db_directory:
+  db: "{{ data_path }}/archive/db"
+
+

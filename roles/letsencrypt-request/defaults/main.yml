@@ -1,0 +1,11 @@
+---
+# defaults file for letsencrypt-request
+
+domain:
+
+web_path_letsencrypt: /var/www/letsencrypt
+
+letsencrypt_method: webroot
+
+letsencrypt_renewal_conf: |
+  renew_hook = {{ letsencrypt_renew_hook }}

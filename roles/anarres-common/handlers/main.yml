@@ -1,0 +1,12 @@
+---
+
+- name: Restart ntp
+  service:
+    name: ntp
+    state: restarted
+
+- name: Restart docker
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: docker

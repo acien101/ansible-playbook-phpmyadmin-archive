@@ -1,0 +1,26 @@
+---
+dependency:
+  name: galaxy
+  enabled: no
+driver:
+  name: docker
+lint:
+  name: yamllint
+  options:
+    config-file: molecule/default/.yamllint
+platforms:
+  - name: stretch
+    image: library/debian:stretch
+provisioner:
+  name: ansible
+  lint:
+    name: ansible-lint
+  config_options:
+    defaults:
+      callback_whitelist: profile_tasks
+scenario:
+  name: default
+verifier:
+  name: testinfra
+  lint:
+    name: flake8

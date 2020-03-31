@@ -1,0 +1,36 @@
+---
+
+- name: '[Pretask] Setup certbot'
+  hosts: all
+  tasks:
+    - name: add group name ssl-cert for SSL certificates
+      group:
+        name: ssl-cert
+        state: present
+
+    - name: install certbot package
+      apt:
+        pkg: certbot
+        state: present
+
+    - name: create live directory for LetsEncrypt
+      file:
+        state: directory
+        path: "/etc/letsencrypt/live"
+        group: ssl-cert
+        owner: root
+
+    - name: create web directory
+      file:
+        path: "{{ web_path_letsencrypt }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: "u=rwx,g=r,o="
+  vars:
+    web_path_letsencrypt: /var/www/letsencrypt
+
+- name: Converge
+  hosts: all
+  roles:
+    - role: letsencrypt-request

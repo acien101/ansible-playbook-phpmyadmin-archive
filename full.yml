@@ -1,0 +1,44 @@
+---
+
+- name: Deploy archive db in docker
+  hosts: zulu
+  become: true
+  gather_facts: false
+  vars:
+    service_name: archive-phpmyadmin
+    create_network: true
+    docker_network_name: "{{ archive_network_name }}"
+    service_db_name: archive-db
+    enable_db: true
+    db_type: mariadb
+    docker_service_directory_db: "{{ archive_db_directory.db }}"
+    docker_image: "{{ archive_db_phpmyadmin_image }}"
+    docker_db_image: "{{ archive_db_image }}"
+    docker_command: |
+      /usr/bin/docker run --rm --name "{{ service_name }}" \
+      -p "{{ archive_db_web_port }}:80" \
+      -e PMA_HOST="{{ service_db_name }}" \
+      -e PMA_PORT=3306 \
+      --network "{{ archive_network_name }}" \
+      "{{ docker_image }}"
+    db_pass: "{{ archive_db_pass }}"
+    db_user_pass: "{{ archive_db_user_pass }}"
+    db_name: "{{ archive_db_name }}"
+    db_user: "{{ archive_db_user }}"
+    db_config_port: 3306
+    db_expose_port: 3306
+
+  pre_tasks:
+    - name: Create archive directories 755
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ user_uid_1000 }}"
+        group: "{{ group_gid_1000 }}"
+        mode: 0700
+      with_items:
+        - "{{ archive_directory.data }}"
+        - "{{ archive_db_directory.db }}"
+  roles:
+    - role: generic_docker_systemd
+  tags: [ never, archive_db ]

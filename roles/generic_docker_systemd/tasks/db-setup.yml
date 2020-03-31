@@ -1,0 +1,107 @@
+---
+
+## MariaDB setup
+
+- name: Preconfigure database
+  docker_container:
+    name: db-config
+    image: "{{ docker_db_image }}"
+    user: 1000:1000
+    state: started
+    ports: "{{ db_config_port }}:3306"
+    volumes: "{{ docker_service_directory_db }}:/var/lib/mysql"
+    env:
+      'MYSQL_ROOT_PASSWORD': "{{ db_pass }}"
+  when: db_type == 'mariadb'
+
+- name: Wait for configuration database container to start
+  wait_for:
+    port: "{{ db_config_port }}"
+    search_regex: mysql_native_password
+  when: db_type == 'mariadb'
+
+- name: Create a new database
+  mysql_db:
+    name: "{{ db_name }}"
+    state: present
+    encoding: utf8
+    collation: utf8_general_ci
+    login_host: 127.0.0.1
+    login_port: "{{ db_config_port }}"
+    login_user: root
+    login_password: "{{ db_pass }}"
+  when: create_user_and_db and db_type == 'mariadb'
+
+- name: Create a new db user
+  mysql_user:
+    name: "{{ db_user }}"
+    password: "{{ db_user_pass }}"
+    priv: "{{ db_name }}.*:ALL"
+    host: "%"
+    state: present
+    login_host: 127.0.0.1
+    login_port: "{{ db_config_port }}"
+    login_user: root
+    login_password: "{{ db_pass }}"
+  when: create_user_and_db and db_type == 'mariadb'
+
+## Postgres
+
+- name: Preconfigure database
+  docker_container:
+    name: db-config
+    image: "{{ docker_db_image }}"
+    user: 1000:1000
+    state: started
+    ports: "{{ db_config_port }}:5432"
+    volumes: "{{ docker_service_directory_db }}:/var/lib/postgresql/data"
+    env:
+      POSTGRES_USER: "{{ db_user }}"
+      POSTGRES_PASSWORD: "{{ db_user_pass }}"
+      POSTGRES_DB: "{{ db_name }}"
+  when: db_type == 'postgres'
+
+- name: Wait for configuration database container to start
+  wait_for:
+    port: "{{ db_config_port }}"
+  when: db_type == 'postgres'
+
+## Mongo
+
+- name: Preconfigure database
+  docker_container:
+    name: db-config
+    image: "{{ docker_db_image }}"
+    user: 1000:1000
+    state: started
+    ports: "{{ db_config_port }}:27017"
+    volumes: "{{ docker_service_directory_db }}:/data/db"
+    env:
+      MONGO_INITDB_ROOT_USERNAME: "{{ db_user }}"
+      MONGO_INITDB_ROOT_PASSWORD: "{{ db_user_pass }}"
+      MONGO_INITDB_DATABASE: "{{ db_name }}"
+  when: db_type == 'mongo'
+
+- name: Wait for configuration database container to start
+  wait_for:
+    port: "{{ db_config_port }}"
+  when: db_type == 'mongo'
+
+- name: Create database and user
+  mongodb_user:
+    login_host: localhost
+    login_user: "{{ db_user }}"
+    login_port: "{{ db_config_port }}"
+    login_password: "{{ db_user_pass }}"
+    database: "{{ db_name }}"
+    name: "{{ db_user }}"
+    password: "{{ db_user_pass }}"
+    state: present
+  when: create_user_and_db and db_type == 'mongo'
+
+## Then for both cases
+
+- name: Stop and remove configuration container
+  docker_container:
+    name: db-config
+    state: absent

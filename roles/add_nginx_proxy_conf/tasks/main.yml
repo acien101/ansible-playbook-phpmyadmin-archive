@@ -1,0 +1,8 @@
+---
+# tasks file for add_nginx_proxy_conf
+
+- name: Create vhost configuration file
+  template:
+    src: proxy_template.conf.j2
+    dest: "/etc/nginx/sites-available/{{ domain }}.conf"
+  notify: Enable vhost

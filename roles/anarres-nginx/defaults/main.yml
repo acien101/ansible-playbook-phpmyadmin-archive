@@ -1,0 +1,17 @@
+---
+
+## nginx
+
+domain:
+
+nginx_processes: 'auto'
+web_ports_http: 80
+web_ports_https: 443
+
+web_path: '/var/www'
+
+web_path_letsencrypt: "{{ web_path }}/letsencrypt"
+web_path_default: "{{ web_path }}/default"
+
+ssl_certificate: "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
+ssl_certificate_key: "/etc/letsencrypt/live/{{ domain }}/privkey.pem"

@@ -1,0 +1,8 @@
+---
+
+- src: https://git.hdg.sh/anarres/anarres-common
+  scm: git
+- src: https://git.hdg.sh/anarres/anarres-sec
+  scm: git
+- src: https://git.hdg.sh/anarres/anarres-letsencrypt
+  scm: git

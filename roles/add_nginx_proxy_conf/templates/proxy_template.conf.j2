@@ -1,0 +1,15 @@
+server {
+  listen {{ external_port }} ssl http2;
+
+  server_name {{ domain }};
+
+  client_max_body_size 50M;
+
+  ssl_certificate {{ ssl_certificate }};
+  ssl_certificate_key {{ ssl_certificate_key }};
+
+  location / {
+    {{ proxy_conf }}
+  }
+
+}

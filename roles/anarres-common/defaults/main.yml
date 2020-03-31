@@ -1,0 +1,26 @@
+---
+
+# Common
+
+## docker
+
+docker_data_root: "/var/lib/docker"
+dockerfile_path: "/root/dockerfiles"
+
+# docker_registry_mirror: "http://172.16.100.1:5000"
+
+db_docker_image: "mariadb:10.3"  # official
+
+## sendxmpp
+
+sendxmpp_jid: "server@domain.com"  # Will be used by fail2ban
+sendxmpp_pass: "pass"  # Will be used by fail2ban  # CHANGEME!
+sendxmpp_config: "/root/.sendxmpprc"
+
+## NTP
+
+ntp_servers:
+  - 0.europe.pool.ntp.org
+  - 1.europe.pool.ntp.org
+  - 2.europe.pool.ntp.org
+  - 3.europe.pool.ntp.org

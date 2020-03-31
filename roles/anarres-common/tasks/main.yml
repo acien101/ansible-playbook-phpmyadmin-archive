@@ -1,0 +1,51 @@
+---
+
+- name: Install base packages
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - coreutils
+    - curl
+    - tree
+    - htop
+    - iotop
+    - less
+    - speedtest-cli
+    - nload
+    - git
+    - vim
+    - tmux
+    - sendxmpp
+    - mlocate
+    - python-pip
+    - lsof
+    - python-mysqldb
+    - python-pexpect
+    - net-tools
+    - traceroute
+    - dnsutils
+    - pv
+    - ca-certificates
+    - man
+    - bash-completion
+    - aptitude
+
+- name: Create sendxmpp config file
+  template:
+    src: sendxmpp.j2
+    dest: "{{ sendxmpp_config }}"
+
+- name: Create data directory if it doesn't exists
+  file:
+    path: /data
+    state: directory
+    mode: 0700
+
+- name: Import ntp tasks
+  import_tasks: ntp.yml
+  tags: ntp
+
+- name: Import docker tasks
+  import_tasks: docker.yml
+  tags: docker

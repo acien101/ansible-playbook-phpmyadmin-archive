@@ -1,0 +1,103 @@
+---
+# tasks file for letsencrypt-request
+
+- name: Check if we already have a certificate
+  stat:
+    path: "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
+  register: letsencrypt_cert
+
+- name: Get an SSL certificate for {{ domain }} from Let's Encrypt
+  command: "certbot certonly --webroot -w {{ web_path_letsencrypt }} --preferred-challenges http-01 -d {{ domain }} --register-unsafely-without-email --agree-tos -n"
+  args:
+    creates: "/etc/letsencrypt/live/{{ domain }}/privkey.pem"
+  when:
+    - letsencrypt_cert.stat.exists == False
+    - testing is undefined
+    - letsencrypt_method == 'webroot'
+
+- name: Get an SSL certificate for {{ domain }} from Let's Encrypt
+  command: "certbot certonly --standalone --preferred-challenges http-01 -d {{ domain }} --register-unsafely-without-email --agree-tos -n"
+  args:
+    creates: "/etc/letsencrypt/live/{{ domain }}/privkey.pem"
+  when:
+    - letsencrypt_cert.stat.exists == false
+    - testing is undefined
+    - letsencrypt_method == 'standalone'
+
+- name: Configure Let's Encrypt. Delete extra line.
+  lineinfile:
+    path: "/etc/letsencrypt/renewal/{{ domain }}.conf"
+    regexp: '^pref_challs'
+    state: absent
+  when:
+    - testing is undefined
+
+- name: Configure Let's Encrypt. Change auto renewal method.
+  lineinfile:
+    path: "/etc/letsencrypt/renewal/{{ domain }}.conf"
+    regexp: '^authenticator'
+    line: 'authenticator = webroot'
+    state: present
+  when:
+    - testing is undefined
+
+- name: Configure Let's Encrypt. Configure renewal hook.
+  blockinfile:
+    path: "/etc/letsencrypt/renewal/{{ domain }}.conf"
+    insertbefore: "[[webroot_map]]"
+    block: "{{ letsencrypt_renewal_conf }}"
+    state: present
+  when:
+    - testing is undefined
+    - letsencrypt_renew_hook is defined
+
+# Alternative if we are testing (as we can't get Let's Encrypt certificates)
+
+- name: Create live directory for testing keys
+  file:
+    dest: /etc/letsencrypt/live/{{ domain }}
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  when:
+    - testing is defined
+    - letsencrypt_cert.stat.exists == False
+
+- name: Install openssl
+  apt:
+    pkg: openssl
+    state: present
+  when:
+    - testing is defined
+    - letsencrypt_cert.stat.exists == False
+
+- name: Create self-signed certificate, if testing.
+  command: >
+    openssl req -x509 -nodes -subj '/CN={{ domain }}' -days 30
+    -newkey rsa:4096 -sha256 -keyout /etc/letsencrypt/live/{{ domain }}/privkey.pem
+    -out /etc/letsencrypt/live/{{ domain }}/cert.pem
+  args:
+    creates: /etc/letsencrypt/live/{{ domain }}/cert.pem
+  ignore_errors: yes
+  when:
+    - testing is defined
+    - letsencrypt_cert.stat.exists == False
+
+- name: Create a combined SSL cert for testing
+  shell: cat /etc/letsencrypt/live/{{ domain }}/cert.pem >
+    /etc/letsencrypt/live/{{ domain }}/fullchain.pem
+  when:
+    - testing is defined
+    - letsencrypt_cert.stat.exists == False
+
+- name: Set permissions on combined SSL public cert
+  file:
+    name: "{{ item }}"
+    mode: 0644
+  with_items:
+    - "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
+    - "/etc/letsencrypt/live/{{ domain }}/cert.pem"
+    - "/etc/letsencrypt/live/{{ domain }}/privkey.pem"
+  when:
+    - testing is defined

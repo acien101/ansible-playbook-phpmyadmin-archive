@@ -1,0 +1,16 @@
+---
+# handlers file for add_nginx_proxy_conf
+
+- name: Enable vhost
+  file:
+    src: "/etc/nginx/sites-available/{{ domain }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ domain }}.conf"
+    owner: www-data
+    group: www-data
+    state: link
+  notify: Restart nginx
+
+- name: Restart nginx
+  service:
+    name: nginx
+    state: restarted

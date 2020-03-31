@@ -1,0 +1,6 @@
+*.retry
+.cache
+pytest*
+.molecule
+__pycache__
+*pyc

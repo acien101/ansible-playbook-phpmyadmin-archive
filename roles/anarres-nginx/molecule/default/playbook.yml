@@ -1,0 +1,55 @@
+---
+
+- name: "[Pretask] Install curl for testing"
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Install curl
+      package:
+        name: curl
+        state: present
+
+- name: "[Pretask] Prepare web deployment"
+  hosts: all
+  gather_facts: true
+  vars:
+    - web_path: /var/www
+    - web_path_letsencrypt: "{{ web_path }}/letsencrypt"
+  tasks:
+    - name: Add group name ssl-cert for SSL certificates
+      group:
+        name: ssl-cert
+        state: present
+
+    - name: Install certbot package
+      package:
+        name: certbot
+        state: present
+
+    - name: Create live directory for Let's Encrypt
+      file:
+        state: directory
+        path: "/etc/letsencrypt/live"
+        group: ssl-cert
+        owner: root
+
+    - name: Create web directory
+      file:
+        path: "{{ web_path_letsencrypt }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: "u=rwx,g=r,o="
+
+- name: Deploy web related services
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: letsencrypt-request
+  vars:
+    - domain: "{{ base_domain }}"
+
+- name: Converge
+  hosts: all
+  roles:
+    - role: anarres-nginx

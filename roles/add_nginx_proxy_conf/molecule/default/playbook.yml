@@ -1,0 +1,124 @@
+---
+
+- name: '[Pretask] Setup certificates'
+  hosts: all
+  vars:
+    domain: anarres.local
+  tasks:
+    - name: check if we already have a certificate
+      stat:
+        path: "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
+      register: letsencrypt_cert
+
+    - name: create live directory for testing keys
+      file:
+        dest: /etc/letsencrypt/live/{{ domain }}
+        state: directory
+        owner: root
+        group: root
+        mode: 0755
+      when:
+        - letsencrypt_cert.stat.exists == False
+
+    - name: install openssl
+      package:
+        name: openssl
+        state: present
+      when:
+        - letsencrypt_cert.stat.exists == False
+
+    - name: create self-signed certificate, if testing
+      command: >
+        openssl req -x509 -nodes -subj '/CN={{ domain }}' -days 30
+        -newkey rsa:4096 -sha256 -keyout /etc/letsencrypt/live/{{ domain }}/privkey.pem
+        -out /etc/letsencrypt/live/{{ domain }}/cert.pem
+      args:
+        creates: /etc/letsencrypt/live/{{ domain }}/cert.pem
+      ignore_errors: yes
+      when:
+        - letsencrypt_cert.stat.exists == False
+
+    - name: create a combined SSL cert for testing
+      shell: cat /etc/letsencrypt/live/{{ domain }}/cert.pem >
+        /etc/letsencrypt/live/{{ domain }}/fullchain.pem
+      when:
+        - letsencrypt_cert.stat.exists == False
+
+    - name: Set permissions on combined SSL public cert
+      file:
+        name: "{{ item }}"
+        mode: 0644
+      with_items:
+        - "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
+        - "/etc/letsencrypt/live/{{ domain }}/cert.pem"
+        - "/etc/letsencrypt/live/{{ domain }}/privkey.pem"
+
+- name: '[Pretask] Setup nginx'
+  hosts: all
+  vars:
+    domain: anarres.local
+  tasks:
+    - name: Install nginx
+      package:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - nginx
+
+    - name: Start nginx
+      service:
+        name: nginx
+        state: started
+
+- name: '[Pretask] Setup testing required tools'
+  hosts: all
+  tasks:
+    - name: Install net-tools and curl
+      package:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - net-tools
+        - curl
+
+- name: '[Pretask] Setup dummy http server'
+  hosts: all
+  tasks:
+    - name: check if we already have the http server files
+      stat:
+        path: "/tmp/www/index.html"
+      register: http_files
+
+    - name: Create web directory
+      file:
+        dest: /tmp/www
+        state: directory
+      when:
+        - http_files.stat.exists == False
+
+    - name: Create index.html
+      file:
+        path: /tmp/www/index.html
+        state: touch
+      when:
+        - http_files.stat.exists == False
+
+    - name: Add content to index.html
+      lineinfile:
+        path: /tmp/www/index.html
+        line: "Hello World!"
+      when:
+        - http_files.stat.exists == False
+
+    - name: Start simple http server in background
+      shell: cd /tmp/www; nohup python -mSimpleHTTPServer </dev/null >/dev/null 2>&1 &
+      when:
+        - http_files.stat.exists == False
+
+- name: Converge
+  hosts: all
+  vars:
+    binded_port: 8000
+    domain: anarres.local
+  roles:
+    - role: add_nginx_proxy_conf

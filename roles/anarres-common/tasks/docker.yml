@@ -1,0 +1,86 @@
+---
+
+# Avoid systemd bug https://github.com/systemd/systemd/issues/3374
+
+- name: Copy systemd link
+  copy:
+    src: 99-default.link
+    dest: /etc/systemd/network/99-default.link
+    owner: root
+    group: root
+    mode: 0600
+
+- name: Install Docker's dependencies
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - gnupg2
+    - software-properties-common
+  tags:
+    - dependencies
+
+- name: Install Docker's pip dependencies
+  pip:
+    name: docker
+    state: present
+  tags:
+    - dependencies
+
+- name: Add Docker's official GPG key
+  apt_key:
+    url: https://download.docker.com/linux/debian/gpg
+    state: present
+
+- name: Add Docker's stable repository
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/debian stretch stable
+    state: present
+
+- name: Install docker-ce
+  package:
+    name: docker-ce
+    state: present
+
+- name: Create docker directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "u=rwx,g=x,o=x"
+  with_items:
+    - "{{ docker_data_root }}"
+    - "{{ dockerfile_path }}"
+
+- name: Change docker root path
+  lineinfile:
+    path: '/lib/systemd/system/docker.service'
+    regexp: '^ExecStart=/usr/bin/dockerd '
+    line: "ExecStart=/usr/bin/dockerd --data-root {{ docker_data_root }}"
+    state: present
+  when:
+    - docker_registry_mirror is not defined
+  notify:
+    - Restart docker
+
+- name: Set docker registry mirror and root path
+  lineinfile:
+    path: '/lib/systemd/system/docker.service'
+    regexp: '^ExecStart=/usr/bin/dockerd '
+    line: "ExecStart=/usr/bin/dockerd --data-root {{ docker_data_root }} --registry-mirror {{ docker_registry_mirror }}"
+    state: present
+  when:
+    - docker_registry_mirror is defined
+  notify:
+    - Restart docker
+
+- name: Restart docker in order to use the new graph path
+  meta: flush_handlers
+
+- name: Pull mariadb docker image (dependency for some services)
+  docker_image:
+    name: "{{ db_docker_image }}"

@@ -1,0 +1,30 @@
+server {
+	listen {{ web_ports_http }} default_server;
+	server_name _;
+	
+	# Necessary for Let's Encrypt Domain Name ownership validation
+	location /.well-known/acme-challenge/ {
+		root {{ web_path_letsencrypt }};
+		try_files $uri /dev/null =404;
+	}
+	
+	location / {
+		return 301 https://$host$request_uri;
+	}
+}
+
+server {
+	server_name {{ domain }};
+	listen {{ web_ports_https }} ssl http2 default_server;
+
+	add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+	ssl_certificate {{ ssl_certificate }};
+	ssl_certificate_key {{ ssl_certificate_key }};
+
+	root {{ web_path_default }};
+	index index.html;
+	location / {
+		try_files $uri $uri/ =404;
+	}
+}

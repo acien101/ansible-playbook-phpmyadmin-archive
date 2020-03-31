@@ -1,0 +1,62 @@
+---
+
+- name: Add key for nginx repository
+  apt_key:
+    url: http://nginx.org/keys/nginx_signing.key
+  register: nginx_key_added
+
+- name: Add nginx repository
+  apt_repository:
+    repo: "deb http://nginx.org/packages/mainline/debian/ {{ ansible_lsb.codename }} nginx"
+
+- name: Install Nginx
+  apt:
+    name: nginx-light
+
+- name: Create web directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "u=rwx,g=r,o="
+  with_items:
+    - "{{ web_path_default }}"
+
+- name: Configure nginx
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+
+- name: Configure default vhost
+  template:
+    src: default.conf.j2
+    dest: /etc/nginx/sites-available/default
+  notify: Restart nginx
+
+- name: Copy default website
+  copy:
+    src: index.html
+    dest: /var/www/default/index.html
+    owner: www-data
+    group: www-data
+    mode: "u=r,g=r,o="
+
+- name: Copy robots.txt file
+  copy:
+    src: robots.txt
+    dest: /var/www/default/robots.txt
+    owner: www-data
+    group: www-data
+    mode: "u=r,g=r,o="
+
+- name: Enable default vhost
+  file:
+    src: /etc/nginx/sites-available/default
+    dest: /etc/nginx/sites-enabled/default
+    owner: www-data
+    group: www-data
+    state: link
+  notify: Restart nginx
+
+- meta: flush_handlers
